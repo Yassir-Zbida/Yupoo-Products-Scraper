@@ -1,2 +1,116 @@
+# ChromeDriver folders
+chromedriver-mac-arm64/
+chromedriver-mac-x64/
+chromedriver-win32/
+chromedriver-win64/
+chromedriver-linux64/
+chromedriver/
+
+# ChromeDriver executables
+chromedriver.exe
+chromedriver
+chromedriver-*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 .venv/
-.chromedriver-mac-arm64/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Scraped data folders (optional - uncomment if you want to ignore output)
+# scrape_yupoo_*/
+# collection_*/
+# yeezy_*/
+# nike_*/
+
+# Temporary files
+temp_*
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Selenium
+selenium-debug.log
+geckodriver.log
+
+# Images (optional - uncomment if you don't want to track downloaded images)
+# *.webp
+# *.jpg
+# *.jpeg
+# *.png
+# *.gif
+# images/
