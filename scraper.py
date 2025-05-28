@@ -15,9 +15,11 @@ from urllib.parse import urlparse
 from fake_useragent import UserAgent
 from PIL import Image
 import io
+from webdriver_manager.chrome import ChromeDriverManager
+
 
 # Configuration
-CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver-136"
+# CHROMEDRIVER_PATH = "/usr/local/bin/chromedriver-136"
 OUTPUT_FILE_BASE = "yupoo_data"
 
 # Initialiser le générateur d'agent utilisateur
@@ -254,7 +256,7 @@ def download_image(url, output_dir, image_counter, session, folder_name):
 # Setup Chrome options for headless mode
 def get_driver():
     options = Options()
-    options.binary_location = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+    # options.binary_location = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
     
     # Activer le mode headless pour que vous puissiez utiliser votre ordinateur normalement
     options.add_argument("--headless")
@@ -267,7 +269,7 @@ def get_driver():
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-images")  # Ne pas charger les images pour un scraping plus rapide
     
-    service = Service(executable_path=CHROMEDRIVER_PATH)
+    service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
 
 def detect_pagination(driver, base_url):
