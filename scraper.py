@@ -25,6 +25,38 @@ OUTPUT_FILE_BASE = "yupoo_data"
 # Initialiser le générateur d'agent utilisateur
 ua = UserAgent()
 
+def get_webp_quality():
+    """Demander à l'utilisateur la qualité WebP désirée"""
+    print("\n🎨 Configuration de la qualité WebP")
+    print("Choisissez la qualité de conversion WebP:")
+    print("  100 = Qualité maximale (fichiers plus gros)")
+    print("  90  = Très haute qualité (recommandé)")
+    print("  80  = Haute qualité (défaut)")
+    print("  70  = Bonne qualité")
+    print("  60  = Qualité moyenne")
+    print("  50  = Qualité basique (fichiers plus petits)")
+    print("  30  = Basse qualité")
+    
+    while True:
+        try:
+            choice = input("\nEntrez la qualité WebP (30-100): ").strip()
+            quality = int(choice)
+            
+            if 30 <= quality <= 100:
+                print(f"✅ Qualité WebP définie à: {quality}")
+                if quality >= 90:
+                    print("   📈 Très haute qualité - fichiers volumineux")
+                elif quality >= 70:
+                    print("   📊 Bonne qualité - taille équilibrée")
+                else:
+                    print("   📉 Qualité réduite - fichiers compacts")
+                return quality
+            else:
+                print("❌ Veuillez entrer un nombre entre 30 et 100")
+                
+        except ValueError:
+            print("❌ Veuillez entrer un nombre valide")
+
 def clean_product_name(name):
     """Nettoyer le nom du produit - MAX 2 MOTS SEULEMENT"""
     if not name or name == "Name not found":
@@ -146,7 +178,7 @@ def is_placeholder_image(response, url):
 def convert_to_webp(image_data, quality=80):
     """Convertir les données d'image en format WebP"""
     try:
-        print(f"   🔄 Conversion WebP: {len(image_data)} octets d'entrée")
+        print(f"   🔄 Conversion WebP (qualité {quality}): {len(image_data)} octets d'entrée")
         
         # Ouvrir l'image depuis les données binaires
         img = Image.open(io.BytesIO(image_data))
@@ -163,14 +195,14 @@ def convert_to_webp(image_data, quality=80):
         webp_buffer.seek(0)
         
         webp_data = webp_buffer.getvalue()
-        print(f"   ✅ Conversion réussie: {len(webp_data)} octets de sortie")
+        print(f"   ✅ Conversion réussie (Q{quality}): {len(webp_data)} octets de sortie")
         
         return webp_data
     except Exception as e:
         print(f"   ❌ ERREUR DE CONVERSION WebP: {str(e)}")
         return None
 
-def download_image(url, output_dir, image_counter, session, folder_name):
+def download_image(url, output_dir, image_counter, session, folder_name, webp_quality):
     """Télécharger une image avec protection anti-bot et conversion WebP"""
     
     try:
@@ -201,9 +233,9 @@ def download_image(url, output_dir, image_counter, session, folder_name):
             print(f"   ❌ ERREUR: Image placeholder détectée")
             return False, None, None
         
-        # Convertir en WebP
-        print(f"   🔄 Conversion en WebP...")
-        webp_data = convert_to_webp(response.content)
+        # Convertir en WebP avec la qualité choisie
+        print(f"   🔄 Conversion en WebP (qualité {webp_quality})...")
+        webp_data = convert_to_webp(response.content, webp_quality)
         
         if webp_data is None:
             print(f"   ❌ ERREUR: Échec de la conversion WebP")
@@ -230,7 +262,7 @@ def download_image(url, output_dir, image_counter, session, folder_name):
                 os.remove(file_path)  # Supprimer le fichier vide
                 return False, None, None
             
-            print(f"   ✅ Fichier sauvegardé: {filename} ({file_size} octets)")
+            print(f"   ✅ Fichier sauvegardé: {filename} ({file_size} octets, Q{webp_quality})")
             
         except Exception as save_error:
             print(f"   ❌ ERREUR DE SAUVEGARDE: {str(save_error)}")
@@ -406,7 +438,7 @@ def build_page_url(base_url, page_num, has_pagination):
     separator = "&" if "?" in base_url else "?"
     return f"{base_url}{separator}page={page_num}"
 
-def scrape_page(driver, base_url, page_num, has_pagination, images_dir, session, folder_name, image_counter):
+def scrape_page(driver, base_url, page_num, has_pagination, images_dir, session, folder_name, image_counter, webp_quality):
     """Scraper tous les produits d'une seule page"""
     page_url = build_page_url(base_url, page_num, has_pagination)
     print(f"\n🔍 Scraping de la page {page_num}: {page_url}")
@@ -437,8 +469,8 @@ def scrape_page(driver, base_url, page_num, has_pagination, images_dir, session,
                 # Attendre le chargement de la page
                 time.sleep(2)
                 
-                # Extraire les données du produit avec le compteur d'images
-                product_data = extract_product_data(driver, link, page_num, images_dir, session, folder_name, image_counter)
+                # Extraire les données du produit avec le compteur d'images et la qualité WebP
+                product_data = extract_product_data(driver, link, page_num, images_dir, session, folder_name, image_counter, webp_quality)
                 if product_data:
                     page_data.append(product_data)
                     image_counter[0] += 1  # Incrémenter le compteur global
@@ -463,7 +495,7 @@ def scrape_page(driver, base_url, page_num, has_pagination, images_dir, session,
         print(f"❌ Erreur lors du scraping de la page {page_num}: {str(e)}")
         return []
 
-def extract_product_data(driver, link, page_num, images_dir, session, folder_name, image_counter):
+def extract_product_data(driver, link, page_num, images_dir, session, folder_name, image_counter, webp_quality):
     """Extraire les données d'une page produit individuelle"""
     try:
         # Utiliser le bon sélecteur CSS pour le nom du produit
@@ -530,12 +562,12 @@ def extract_product_data(driver, link, page_num, images_dir, session, folder_nam
         download_status = "❌ ÉCHEC"
         
         if image_url != "Image non trouvée":
-            print(f"   🔄 Téléchargement image #{image_counter[0]}...")
-            success, filename, generated_server_url = download_image(image_url, images_dir, image_counter[0], session, folder_name)
+            print(f"   🔄 Téléchargement image #{image_counter[0]} (qualité {webp_quality})...")
+            success, filename, generated_server_url = download_image(image_url, images_dir, image_counter[0], session, folder_name, webp_quality)
             if success:
                 downloaded_image = filename
                 server_url = generated_server_url
-                download_status = "✅ RÉUSSI"
+                download_status = f"✅ RÉUSSI (Q{webp_quality})"
                 print(f"   ✅ Image sauvée: {filename}")
             else:
                 print(f"   ❌ ÉCHEC du téléchargement")
@@ -553,6 +585,7 @@ def extract_product_data(driver, link, page_num, images_dir, session, folder_nam
             'URL_Image_Serveur': server_url if server_url else "Non disponible",
             'Image_Telecharge': downloaded_image if downloaded_image else "Non téléchargée",
             'Statut_Telechargement': download_status,
+            'Qualite_WebP': webp_quality,
             'Numero_Page': page_num,
             'Date_Scraping': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
@@ -626,9 +659,10 @@ def save_to_files(all_data, base_filename, output_folder):
                 'D': 70,  # URL_Image_Originale
                 'E': 70,  # URL_Image_Serveur
                 'F': 20,  # Image_Telecharge
-                'G': 20,  # Statut_Telechargement
-                'H': 12,  # Numero_Page
-                'I': 20   # Date_Scraping
+                'G': 25,  # Statut_Telechargement
+                'H': 15,  # Qualite_WebP
+                'I': 12,  # Numero_Page
+                'J': 20   # Date_Scraping
             }
             
             for col, width in column_widths.items():
@@ -656,6 +690,11 @@ def save_to_files(all_data, base_filename, output_folder):
         print(f"\n📋 Articles par page:")
         for page, count in page_summary.items():
             print(f"   Page {page}: {count} articles")
+        
+        # Afficher le résumé par qualité WebP
+        if 'Qualite_WebP' in df.columns:
+            webp_quality = df['Qualite_WebP'].iloc[0] if len(df) > 0 else "N/A"
+            print(f"\n🎨 Qualité WebP utilisée: {webp_quality}")
         
         # Compter les images selon les statuts dans les données
         success_count = len(df[df['Statut_Telechargement'].str.contains('✅', na=False)])
@@ -713,8 +752,12 @@ def main():
     base_url = get_base_url()
     output_folder, images_dir = create_output_folder()
     
+    # NOUVELLE FONCTION: Obtenir la qualité WebP de l'utilisateur
+    webp_quality = get_webp_quality()
+    
     print(f"\n💾 Dossier de sortie: {output_folder}")
     print(f"🖼️  Dossier des images: {images_dir}")
+    print(f"🎨 Qualité WebP: {webp_quality}")
     print("💻 Vous pouvez continuer à utiliser votre ordinateur normalement pendant le scraping!")
     
     start_time = datetime.now()
@@ -742,10 +785,11 @@ def main():
         print(f"\n🏷️  SYSTÈME DE NOMMAGE:")
         print(f"   📁 Images: img-1.webp, img-2.webp, img-3.webp...")
         print(f"   📝 Produits: MAX 2 mots (ex: YEEZY_700V2)")
+        print(f"   🎨 Qualité: {webp_quality}")
         
         # Scraper chaque page
         for page in range(1, total_pages + 1):
-            page_data = scrape_page(driver, base_url, page, has_pagination, images_dir, session, os.path.basename(output_folder), image_counter)
+            page_data = scrape_page(driver, base_url, page, has_pagination, images_dir, session, os.path.basename(output_folder), image_counter, webp_quality)
             all_scraped_data.extend(page_data)
             
             # Sauvegarder le progrès périodiquement (toutes les 3 pages pour multi-page, ou après page unique)
@@ -757,7 +801,7 @@ def main():
                     temp_df = pd.DataFrame(all_scraped_data)
                     temp_df.to_csv(temp_csv, index=False)
                     temp_df.to_excel(temp_excel, index=False)
-                    print(f"💾 Progrès sauvegardé (img-{image_counter[0]-1} images traitées)")
+                    print(f"💾 Progrès sauvegardé (img-{image_counter[0]-1} images traitées, Q{webp_quality})")
             
             # Brève pause entre les pages (seulement s'il y a plus de pages à traiter)
             if page < total_pages:
@@ -780,6 +824,7 @@ def main():
         print(f"\n⏱️  Temps total: {duration}")
         print(f"⚡ Temps moyen par article: {duration.total_seconds() / len(all_scraped_data):.2f} secondes")
         print(f"🖼️  Dernier numéro d'image: img-{image_counter[0]-1}")
+        print(f"🎨 Qualité WebP utilisée: {webp_quality}")
         
         # Nettoyer les fichiers temporaires
         for temp_file in [f"temp_{OUTPUT_FILE_BASE}.csv", f"temp_{OUTPUT_FILE_BASE}.xlsx"]:
@@ -790,7 +835,7 @@ def main():
         
         print(f"\n📁 Tous les fichiers sauvegardés dans: {output_folder}")
         print(f"🖼️  Images WebP sauvegardées dans: {images_dir}")
-        print(f"📋 Format des images: img-1.webp à img-{image_counter[0]-1}.webp")
+        print(f"📋 Format des images: img-1.webp à img-{image_counter[0]-1}.webp (Q{webp_quality})")
     else:
         print("\n❌ Aucune donnée n'a été scrapée!")
 
